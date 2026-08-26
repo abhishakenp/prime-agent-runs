@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: 'sandbox-provisioner-test-4'
+        default: 'sandbox-multi-provider-test'
 
 jobs:
   agent:
@@ -65,7 +65,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/sandbox-provisioner-test-4" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/sandbox-multi-provider-test" >> $GITHUB_OUTPUT
 
       - name: Upload Work Directory
         if: always()
