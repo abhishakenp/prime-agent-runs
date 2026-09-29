@@ -11,11 +11,11 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/028ac199-8014-48c6-8747-2d23e2529c86'
+        default: '.rlm/sessions/fleet/924eaf9e-f69b-4581-86b1-9fd6a3133724'
 
 jobs:
   agent:
-    runs-on: "macos-14"
+    runs-on: "ubuntu-latest"
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -75,7 +75,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/028ac199-8014-48c6-8747-2d23e2529c86" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/924eaf9e-f69b-4581-86b1-9fd6a3133724" >> $GITHUB_OUTPUT
 
       - name: Upload Work Directory
         if: always()
