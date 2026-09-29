@@ -1,0 +1,23 @@
+name: ipprobe
+on:
+  workflow_dispatch:
+jobs:
+  probe:
+    runs-on: macos-14
+    steps:
+      - name: Probe
+        run: |
+          echo "EGRESS IP:"; curl -s --max-time 10 https://ifconfig.me; echo
+          echo "== duckduckgo status =="
+          curl -s --max-time 15 -o /tmp/ddg.json -w 'HTTP %{http_code}\n' https://duckduckgo.com/duckchat/v1/status || true
+          head -c 300 /tmp/ddg.json; echo
+          echo "== opencode zen models =="
+          curl -s --max-time 15 -o /tmp/oc.json -w 'HTTP %{http_code}\n' https://opencode.ai/zen/v1/models || true
+          head -c 300 /tmp/oc.json; echo
+          echo "== opencode zen chat anon =="
+          curl -s --max-time 20 -X POST https://opencode.ai/zen/v1/chat/completions -H 'Content-Type: application/json' -d '{"model":"kimi-k2","messages":[{"role":"user","content":"say OK"}],"max_tokens":5}' | head -c 400; echo
+          echo "== dahl token mint =="
+          curl -s --max-time 15 -X POST https://inference.dahl.global/tokens -o /tmp/dahl.json -w 'HTTP %{http_code}\n' || true
+          head -c 300 /tmp/dahl.json; echo
+          echo "== felo =="
+          curl -s --max-time 15 -o /tmp/felo.json -w 'HTTP %{http_code}\n' https://felo.ai || true
