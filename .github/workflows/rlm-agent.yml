@@ -11,27 +11,21 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/47d8d653-b4cb-4bbf-814a-ae6d09ed2e40'
+        default: '.rlm/sessions/fleet/be7e2253-fa92-4968-9b12-ce98b86f8b53'
+      resume_from:
+        description: 'Prior run id whose work-dir artifact is restored (migration)'
+        required: false
+        default: ''
+      generation:
+        description: 'Self-migration generation counter'
+        required: false
+        default: '0'
 
 jobs:
   agent:
-    runs-on: "macos-14"
+    runs-on: "ubuntu-latest"
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-      OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      EXPLABS_API_KEY: ${{ secrets.EXPLABS_API_KEY }}
-      MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-      PRIME_AGENT_INTERNAL_DAEMON_WORKER_TOKEN: ${{ secrets.PRIME_AGENT_INTERNAL_DAEMON_WORKER_TOKEN }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Setup Node
@@ -48,34 +42,27 @@ jobs:
           BUNDLE_DIR=$(ls /tmp/agent-bundle)
           echo "BUNDLE_DIR=/tmp/agent-bundle/$BUNDLE_DIR" >> $GITHUB_ENV
           mkdir -p $BUNDLE_DIR/agent
-          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=["DEEPSEEK_API_KEY","TYPESAFE_API_KEY","OLLAMA_API_KEY","KAGGLE_API_TOKEN","OPENROUTER_API_KEY","CLAUDE_CODE_OAUTH_TOKEN","FIRECRAWL_API_KEY","OPENCODE_API_KEY","GEMINI_API_KEY","EXPLABS_API_KEY","MIMO_API_KEY","HF_TOKEN","DASHSCOPE_API_KEY","PRIME_AGENT_INTERNAL_DAEMON_WORKER_TOKEN","GH_TOKEN"];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
+          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=["GH_TOKEN"];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
 
       - name: Run Agent
         run: |
           bash $BUNDLE_DIR/run.sh
         env:
           AGENT_ID: ${{ github.event.inputs.agent_id }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          EXPLABS_API_KEY: ${{ secrets.EXPLABS_API_KEY }}
-          MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
-          PRIME_AGENT_INTERNAL_DAEMON_WORKER_TOKEN: ${{ secrets.PRIME_AGENT_INTERNAL_DAEMON_WORKER_TOKEN }}
+          RESUME_FROM: ${{ github.event.inputs.resume_from }}
+          RLM_GHA_REPO: ${{ github.repository }}
+          RLM_GHA_RUN_ID: ${{ github.run_id }}
+          RLM_GHA_REF: ${{ github.ref_name }}
+          RLM_GHA_GENERATION: ${{ github.event.inputs.generation || '0' }}
+          RLM_GHA_GIST_URL: ${{ github.event.inputs.gist_url }}
+          RLM_WORK_DIR_INPUT: ${{ github.event.inputs.work_dir }}
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Find Work Directory
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/47d8d653-b4cb-4bbf-814a-ae6d09ed2e40" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/be7e2253-fa92-4968-9b12-ce98b86f8b53" >> $GITHUB_OUTPUT
 
       - name: Upload Work Directory
         if: always()
