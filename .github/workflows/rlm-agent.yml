@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/53f0c8e1-ff7e-4816-8934-6f6367037dca'
+        default: '.rlm/sessions/fleet/ce9b30e0-a02f-4203-80ee-7e08d3f4fab4'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -62,7 +62,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/53f0c8e1-ff7e-4816-8934-6f6367037dca" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/ce9b30e0-a02f-4203-80ee-7e08d3f4fab4" >> $GITHUB_OUTPUT
 
       - name: Dump Remote Logs
         if: always()
