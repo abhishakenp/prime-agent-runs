@@ -28,6 +28,8 @@ jobs:
     env:
       RLM_MINT_OUT: /tmp/account.json
       EMAIL_PROVIDER: tempmail-lol
+      # Optional residential-proxy URL — set RLM_MINT_PROXY repo secret to use.
+      BROWSER_PROXY: ${{ secrets.RLM_MINT_PROXY }}
     steps:
       - name: Checkout provisioner
         uses: actions/checkout@v4
