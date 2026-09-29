@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/ce9b30e0-a02f-4203-80ee-7e08d3f4fab4'
+        default: '.rlm/sessions/fleet/f5fa1a87-50b7-46fd-af2c-8b547b9d9a2c'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -26,7 +26,6 @@ jobs:
     runs-on: "ubuntu-latest"
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
-      GH_TOKEN: ${{ secrets.GH_TOKEN }}
     steps:
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -42,7 +41,7 @@ jobs:
           BUNDLE_DIR=$(ls /tmp/agent-bundle)
           echo "BUNDLE_DIR=/tmp/agent-bundle/$BUNDLE_DIR" >> $GITHUB_ENV
           mkdir -p $BUNDLE_DIR/agent
-          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=["GH_TOKEN"];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
+          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=[];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
 
       - name: Run Agent
         run: |
@@ -62,7 +61,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/ce9b30e0-a02f-4203-80ee-7e08d3f4fab4" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/f5fa1a87-50b7-46fd-af2c-8b547b9d9a2c" >> $GITHUB_OUTPUT
 
       - name: Dump Remote Logs
         if: always()
