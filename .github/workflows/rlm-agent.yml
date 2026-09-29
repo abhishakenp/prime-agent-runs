@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/ffba3b3b-bbe0-4ef6-9364-5fba0e2639b3'
+        default: '.rlm/sessions/fleet/b41f2e42-3b0d-4f37-af48-a18e95bb9109'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -48,9 +48,9 @@ jobs:
       - name: Resume Work Directory
         if: github.event.inputs.resume_from != ''
         run: |
-          mkdir -p "$HOME/.rlm/sessions/fleet/ffba3b3b-bbe0-4ef6-9364-5fba0e2639b3" /tmp/rlm-resume
+          mkdir -p "$HOME/.rlm/sessions/fleet/b41f2e42-3b0d-4f37-af48-a18e95bb9109" /tmp/rlm-resume
           gh run download "${{ github.event.inputs.resume_from }}" -n "agent-work-${{ github.event.inputs.resume_from }}" -D /tmp/rlm-resume
-          cp -a /tmp/rlm-resume/. "$HOME/.rlm/sessions/fleet/ffba3b3b-bbe0-4ef6-9364-5fba0e2639b3/"
+          cp -a /tmp/rlm-resume/. "$HOME/.rlm/sessions/fleet/b41f2e42-3b0d-4f37-af48-a18e95bb9109/"
           echo "[rlm] resumed work dir from run ${{ github.event.inputs.resume_from }} (generation ${{ github.event.inputs.generation || '0' }})"
           printf '\n\n=== RESUMED MISSION (generation %s) ===\nYou are continuing a mission that outlived its previous CI runner generation %s. The work directory was restored — check git status/log, prior notes, and completed artifacts FIRST, then continue to completion. Do not restart finished work.\n' "${{ github.event.inputs.generation || '0' }}" "${{ github.event.inputs.generation || '0' }}" >> "$BUNDLE_DIR/agent/prompt.txt"
         env:
@@ -68,7 +68,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/ffba3b3b-bbe0-4ef6-9364-5fba0e2639b3" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/b41f2e42-3b0d-4f37-af48-a18e95bb9109" >> $GITHUB_OUTPUT
 
       - name: Dump Remote Logs
         if: always()
