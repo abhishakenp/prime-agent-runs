@@ -1,0 +1,93 @@
+name: mint-account
+# Mints a provider account entirely inside CI — no local browser/hardware.
+# Dispatched by the RLM github-actions runtime when the account pool is dry
+# and the local provisioner is unreachable. The minted account JSON is
+# encrypted (AES-256, passphrase in RLM_MINT_KEY secret) and uploaded as an
+# artifact named rlm-account-<run_id> for the runtime to pick up.
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Provider to mint (provisioner adapter id)
+        required: false
+        default: github-actions
+      attempts:
+        description: Signup attempts inside this run (DataDome is probabilistic)
+        required: false
+        default: "4"
+      provisioner_ref:
+        description: Branch/ref of abhishakenp/provisioner to clone
+        required: false
+        default: feat/email-abstraction-pooling
+
+jobs:
+  mint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      RLM_MINT_OUT: /tmp/account.json
+      EMAIL_PROVIDER: tempmail-lol
+    steps:
+      - name: Checkout provisioner
+        uses: actions/checkout@v4
+        with:
+          repository: abhishakenp/provisioner
+          ref: ${{ inputs.provisioner_ref }}
+          token: ${{ secrets.RLM_MINT_GH_TOKEN }}
+          path: provisioner
+
+      - name: Install bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
+      - name: Install provisioner deps
+        run: |
+          cd provisioner
+          bun install
+
+      - name: Install headless chromium
+        run: |
+          cd provisioner
+          bunx playwright install --with-deps chromium
+
+      - name: Mint account (retry loop)
+        env:
+          GH_ATTEMPTS: ${{ inputs.attempts }}
+          GH_PROVIDER: ${{ inputs.provider }}
+        run: |
+          cd provisioner
+          for i in $(seq 1 "$GH_ATTEMPTS"); do
+            echo "=== mint attempt $i/$GH_ATTEMPTS ==="
+            rm -f "$RLM_MINT_OUT"
+            if bun run src/cli.ts provision "$GH_PROVIDER" "ci-mint-$i"; then
+              if [ -f "$RLM_MINT_OUT" ]; then
+                echo "MINT_OK attempt=$i"
+                exit 0
+              fi
+              echo "provision exited 0 but no account json — retrying"
+            else
+              echo "provision failed — retrying"
+            fi
+            sleep 20
+          done
+          echo "MINT_EXHAUSTED"
+          exit 1
+
+      - name: Encrypt account payload
+        if: success()
+        run: |
+          openssl enc -aes-256-cbc -pbkdf2 -salt \
+            -in "$RLM_MINT_OUT" -out /tmp/account.json.enc \
+            -pass pass:"${{ secrets.RLM_MINT_KEY }}"
+          cp provisioner/mint-*.log /tmp/ 2>/dev/null || true
+
+      - name: Upload account artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rlm-account-${{ github.run_id }}
+          path: /tmp/account.json.enc
+          retention-days: 1
+          if-no-files-found: error
