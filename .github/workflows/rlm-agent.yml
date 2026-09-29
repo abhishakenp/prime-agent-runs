@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/be7e2253-fa92-4968-9b12-ce98b86f8b53'
+        default: '.rlm/sessions/fleet/53f0c8e1-ff7e-4816-8934-6f6367037dca'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -62,14 +62,24 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/be7e2253-fa92-4968-9b12-ce98b86f8b53" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/53f0c8e1-ff7e-4816-8934-6f6367037dca" >> $GITHUB_OUTPUT
+
+      - name: Dump Remote Logs
+        if: always()
+        run: |
+          W=${{ steps.workdir.outputs.work_path }}
+          for f in status.json output.log omniroute.log provisioner.log run.stdout.log; do
+            if [ -f "$W/$f" ]; then echo "===== $f ====="; tail -c 6000 "$W/$f"; echo; fi
+          done
 
       - name: Upload Work Directory
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: agent-work-${{ github.run_id }}
-          path: ${{ steps.workdir.outputs.work_path }}/
+          path: |
+            ${{ steps.workdir.outputs.work_path }}/
+            !${{ steps.workdir.outputs.work_path }}/**/node_modules/
           if-no-files-found: ignore
 
       - name: Upload Agent Logs
