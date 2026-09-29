@@ -28,6 +28,8 @@ jobs:
     env:
       RLM_MINT_OUT: /tmp/account.json
       EMAIL_PROVIDER: tempmail-lol
+      # Real headed Chromium under xvfb — headless-shell is an instant DataDome flag
+      BROWSER_HEADED: "1"
       # Optional residential-proxy URL — set RLM_MINT_PROXY repo secret to use.
       BROWSER_PROXY: ${{ secrets.RLM_MINT_PROXY }}
     steps:
@@ -49,10 +51,11 @@ jobs:
           cd provisioner
           bun install
 
-      - name: Install headless chromium
+      - name: Install headed chromium + xvfb
         run: |
           cd provisioner
           bunx playwright install --with-deps chromium
+          sudo apt-get update -qq && sudo apt-get install -y -qq xvfb
 
       - name: Mint account (retry loop)
         env:
@@ -63,7 +66,7 @@ jobs:
           for i in $(seq 1 "$GH_ATTEMPTS"); do
             echo "=== mint attempt $i/$GH_ATTEMPTS ==="
             rm -f "$RLM_MINT_OUT"
-            if bun run src/cli.ts provision "$GH_PROVIDER" "ci-mint-$i"; then
+            if xvfb-run -a bun run src/cli.ts provision "$GH_PROVIDER" "ci-mint-$i"; then
               if [ -f "$RLM_MINT_OUT" ]; then
                 echo "MINT_OK attempt=$i"
                 exit 0
