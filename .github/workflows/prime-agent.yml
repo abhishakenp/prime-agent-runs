@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/91f369b6-8329-4d6e-9530-ab3a216b1977'
+        default: '.rlm/sessions/fleet/0776e716-183c-415a-abff-dc86194e5cc9'
 
 jobs:
   agent:
@@ -71,7 +71,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/91f369b6-8329-4d6e-9530-ab3a216b1977" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/0776e716-183c-415a-abff-dc86194e5cc9" >> $GITHUB_OUTPUT
 
       - name: Upload Work Directory
         if: always()
