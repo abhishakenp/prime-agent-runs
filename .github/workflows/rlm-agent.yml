@@ -11,7 +11,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/37dbd6b2-140d-4c6e-9104-cb0a1d3d0ed0'
+        default: '.rlm/sessions/fleet/64231e7a-403f-4296-96fa-9faa6afebedd'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -47,9 +47,9 @@ jobs:
       - name: Resume Work Directory
         if: github.event.inputs.resume_from != ''
         run: |
-          mkdir -p "$HOME/.rlm/sessions/fleet/37dbd6b2-140d-4c6e-9104-cb0a1d3d0ed0" /tmp/rlm-resume
+          mkdir -p "$HOME/.rlm/sessions/fleet/64231e7a-403f-4296-96fa-9faa6afebedd" /tmp/rlm-resume
           gh run download "${{ github.event.inputs.resume_from }}" -n "agent-work-${{ github.event.inputs.resume_from }}" -D /tmp/rlm-resume
-          cp -a /tmp/rlm-resume/. "$HOME/.rlm/sessions/fleet/37dbd6b2-140d-4c6e-9104-cb0a1d3d0ed0/"
+          cp -a /tmp/rlm-resume/. "$HOME/.rlm/sessions/fleet/64231e7a-403f-4296-96fa-9faa6afebedd/"
           echo "[rlm] resumed work dir from run ${{ github.event.inputs.resume_from }} (generation ${{ github.event.inputs.generation || '0' }})"
           printf '\n\n=== RESUMED MISSION (generation %s) ===\nYou are continuing a mission that outlived its previous CI runner generation %s. The work directory was restored — check git status/log, prior notes, and completed artifacts FIRST, then continue to completion. Do not restart finished work.\n' "${{ github.event.inputs.generation || '0' }}" "${{ github.event.inputs.generation || '0' }}" >> "$BUNDLE_DIR/agent/prompt.txt"
         env:
@@ -66,7 +66,7 @@ jobs:
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/37dbd6b2-140d-4c6e-9104-cb0a1d3d0ed0" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/.rlm/sessions/fleet/64231e7a-403f-4296-96fa-9faa6afebedd" >> $GITHUB_OUTPUT
 
       - name: Dump Remote Logs
         if: always()
@@ -100,12 +100,13 @@ jobs:
         run: |
           W=${{ steps.workdir.outputs.work_path }}
           GEN="${{ github.event.inputs.generation || '0' }}"
-          if [ -f "$W/.budget-exceeded" ] && [ "$GEN" -lt 8 ]; then
+          if [ "$GEN" -lt 8 ] && { [ -f "$W/.budget-exceeded" ] || [ ! -s "$W/output.log" ]; }; then
+            RESUME_VAL=""; [ -f "$W/.budget-exceeded" ] && RESUME_VAL="${{ github.run_id }}"
             curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rlm-agent.yml/dispatches" \
-              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"${{ github.run_id }}\",\"generation\":\"$((GEN+1))\"}}" \
+              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"$RESUME_VAL\",\"generation\":\"$((GEN+1))\"}}" \
               || echo '[rlm] successor dispatch failed'
-            echo "[rlm] generation $GEN budget expired — dispatched successor gen $((GEN+1)) (resume_from=${{ github.run_id }})"
+            echo "[rlm] gen $GEN handing off (budget=$([ -f "$W/.budget-exceeded" ] && echo yes || echo no), resume=$RESUME_VAL) — dispatched gen $((GEN+1))"
           fi
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
