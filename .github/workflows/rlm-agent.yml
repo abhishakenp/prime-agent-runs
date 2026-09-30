@@ -1,12 +1,12 @@
 name: RLM
-run-name: "${{ github.event.inputs.task_name || 'verify-generic-workflow' }}"
+run-name: "${{ github.event.inputs.task_name || 'rlm-agent' }}"
 on:
   workflow_dispatch:
     inputs:
       task_name:
         description: 'Display name shown in the Actions run list'
         required: false
-        default: 'verify-generic-workflow'
+        default: 'rlm-agent'
       agent_id:
         description: 'Agent ID'
         required: true
@@ -16,7 +16,7 @@ on:
       work_dir:
         description: 'Work directory relative to HOME'
         required: true
-        default: '.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9'
+        default: '.rlm/sessions/fleet/unspecified'
       resume_from:
         description: 'Prior run id whose work-dir artifact is restored (migration)'
         required: false
@@ -35,19 +35,6 @@ jobs:
     runs-on: ${{ github.event.inputs.runner_label || 'ubuntu-latest' }}
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-      FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-      CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-      EXPLABS_API_KEY: ${{ secrets.EXPLABS_API_KEY }}
-      MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
     timeout-minutes: 65
     steps:
       - name: Setup Node
@@ -69,7 +56,7 @@ jobs:
           BUNDLE_DIR=$(ls /tmp/agent-bundle)
           echo "BUNDLE_DIR=/tmp/agent-bundle/$BUNDLE_DIR" >> $GITHUB_ENV
           mkdir -p $BUNDLE_DIR/agent
-          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=["DEEPSEEK_API_KEY","TYPESAFE_API_KEY","OLLAMA_API_KEY","KAGGLE_API_TOKEN","OPENROUTER_API_KEY","FIRECRAWL_API_KEY","CLAUDE_CODE_OAUTH_TOKEN","OPENCODE_API_KEY","GEMINI_API_KEY","EXPLABS_API_KEY","MIMO_API_KEY","HF_TOKEN","DASHSCOPE_API_KEY"];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
+          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const s=JSON.parse(process.env.ALL_SECRETS_JSON||"{}");const keep=/_(API_KEY|API_TOKEN|OAUTH_TOKEN|ACCESS_TOKEN|TOKEN)$/;const env={};for(const k of Object.keys(s)){if(k==="GH_TOKEN"||k==="GITHUB_TOKEN"||(keep.test(k)&&!k.startsWith("RLM_MINT_")))env[k]=s[k];}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
           cat >> "$BUNDLE_DIR/agent/prompt.txt" <<'RELAYEOF'
           === FLEET RELAY CONTRACT ===
           This run is hosted on repo $RLM_FLEET_REPO. If the repository your PR must
@@ -82,13 +69,15 @@ jobs:
           The fleet head fetches the branch and files the PR itself. Never fail the
           task just because the push to the target was denied — relay it.
           RELAYEOF
+        env:
+          ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
 
       - name: Resume Work Directory
         if: github.event.inputs.resume_from != ''
         run: |
-          mkdir -p "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9" /tmp/rlm-resume
+          mkdir -p "$HOME/${{ github.event.inputs.work_dir }}" /tmp/rlm-resume
           gh run download "${{ github.event.inputs.resume_from }}" -R "${{ github.repository }}" -n "agent-work-${{ github.event.inputs.resume_from }}" -D /tmp/rlm-resume || echo "[rlm] resume artifact unavailable — continuing fresh"
-          cp -a /tmp/rlm-resume/. "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9/"
+          cp -a /tmp/rlm-resume/. "$HOME/${{ github.event.inputs.work_dir }}/"
           echo "[rlm] resumed work dir from run ${{ github.event.inputs.resume_from }} (generation ${{ github.event.inputs.generation || '0' }})"
           printf '\n\n=== RESUMED MISSION (generation %s) ===\nYou are continuing a mission that outlived its previous CI runner generation %s. The work directory was restored — check git status/log, prior notes, and completed artifacts FIRST, then continue to completion. Do not restart finished work.\n' "${{ github.event.inputs.generation || '0' }}" "${{ github.event.inputs.generation || '0' }}" >> "$BUNDLE_DIR/agent/prompt.txt"
         env:
@@ -106,35 +95,24 @@ jobs:
 
       - name: Run Agent
         run: |
-          mkdir -p "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9" && date +%s > "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9/.agent-started"
-          mkdir -p "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9/clones"
+          mkdir -p "$HOME/${{ github.event.inputs.work_dir }}" && date +%s > "$HOME/${{ github.event.inputs.work_dir }}/.agent-started"
+          mkdir -p "$HOME/${{ github.event.inputs.work_dir }}/clones"
           for d in mk repo project work app clone codebase src checkout; do
-            if [ ! -d "$HOME/$d" ] && [ ! -L "$HOME/$d" ]; then ln -s "$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9/clones/$d" "$HOME/$d"; fi
+            if [ ! -d "$HOME/$d" ] && [ ! -L "$HOME/$d" ]; then ln -s "$HOME/${{ github.event.inputs.work_dir }}/clones/$d" "$HOME/$d"; fi
           done
           bash $BUNDLE_DIR/run.sh
         env:
           AGENT_ID: ${{ github.event.inputs.agent_id }}
           RLM_GEN_BUDGET: '3300'
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-          OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
-          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          EXPLABS_API_KEY: ${{ secrets.EXPLABS_API_KEY }}
-          MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           RLM_FLEET_REPO: ${{ github.repository }}
 
       - name: Find Work Directory
         if: always()
         id: workdir
         run: |
-          echo "work_path=$HOME/.rlm/sessions/fleet/f39af8d5-8173-4876-9f0f-babfd6b5f5e9" >> $GITHUB_OUTPUT
+          echo "work_path=$HOME/${{ github.event.inputs.work_dir }}" >> $GITHUB_OUTPUT
 
       - name: Dump Remote Logs
         if: always()
@@ -174,7 +152,7 @@ jobs:
             RESUME_VAL="${{ github.run_id }}"
             curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
               "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rlm-agent.yml/dispatches" \
-              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"task_name\":\"${{ github.event.inputs.task_name || 'verify-generic-workflow' }}\",\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"$RESUME_VAL\",\"generation\":\"$((GEN+1))\",\"runner_label\":\"${{ github.event.inputs.runner_label || 'ubuntu-latest' }}\"}}" \
+              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"task_name\":\"${{ github.event.inputs.task_name || 'rlm-agent' }}\",\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"$RESUME_VAL\",\"generation\":\"$((GEN+1))\",\"runner_label\":\"${{ github.event.inputs.runner_label || 'ubuntu-latest' }}\"}}" \
               || echo '[rlm] successor dispatch failed'
             echo "[rlm] gen $GEN handing off (budget=$([ -f "$W/.budget-exceeded" ] && echo yes || echo no), resume=$RESUME_VAL) — dispatched gen $((GEN+1))"
           fi
