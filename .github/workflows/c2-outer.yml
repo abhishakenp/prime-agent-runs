@@ -9,10 +9,10 @@ jobs:
       - name: Capture outer run info
         id: info
         run: |
-          echo "outer_run_id=${github.run_id}" >> $GITHUB_OUTPUT
-          echo "outer_run_number=${github.run_number}" >> $GITHUB_OUTPUT
-          echo "::notice::Outer Run ID: ${github.run_id}"
-          echo "::notice::Outer Run Number: ${github.run_number}"
+          echo "outer_run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "outer_run_number=${{ github.run_number }}" >> $GITHUB_OUTPUT
+          echo "::notice::Outer Run ID: ${{ github.run_id }}"
+          echo "::notice::Outer Run Number: ${{ github.run_number }}"
 
       - name: Dispatch inner workflow via API
         id: trigger
@@ -20,12 +20,11 @@ jobs:
         with:
           result-encoding: string
           script: |
-            // Trigger the inner workflow (c2-inner.yml) via workflow_dispatch
             await github.rest.actions.createWorkflowDispatch({
               owner: 'abhishakenp',
               repo: 'prime-agent-runs',
               workflow_id: 'c2-inner.yml',
-              ref: 'probe/recursion',
+              ref: 'main',
               inputs: {
                 outer_run_id: String(context.runId),
                 outer_run_number: String(context.runNumber)
@@ -33,13 +32,12 @@ jobs:
             });
             console.log('Inner workflow dispatched.');
 
-            // Poll until the inner run appears
             for (let i = 0; i < 20; i++) {
               const runs = await github.rest.actions.listWorkflowRuns({
                 owner: 'abhishakenp',
                 repo: 'prime-agent-runs',
                 workflow_id: 'c2-inner.yml',
-                head_branch: 'probe/recursion',
+                head_branch: 'main',
                 per_page: 1
               });
               if (runs.data.workflow_runs.length > 0) {
@@ -47,7 +45,7 @@ jobs:
                 core.setOutput('inner_run_id', String(r.id));
                 core.setOutput('inner_run_number', String(r.run_number));
                 core.setOutput('inner_run_url', r.html_url);
-                console.log('Inner run detected:', r.id, r.status, r.conclusion);
+                console.log('Inner run:', r.id, r.status, r.conclusion);
                 break;
               }
               await new Promise(resolve => setTimeout(resolve, 3000));
@@ -61,7 +59,7 @@ jobs:
             RESULT=$(gh api repos/abhishakenp/prime-agent-runs/actions/runs/$INNER_ID --jq '.conclusion // "in_progress"' 2>/dev/null)
             echo "Check $i: $RESULT"
             if [ "$RESULT" != "in_progress" ]; then
-              echo "Inner run finished: $RESULT"
+              echo "Done: $RESULT"
               break
             fi
             sleep 5
@@ -70,7 +68,7 @@ jobs:
       - name: Download inner run artifact
         uses: actions/download-artifact@v4
         with:
-          name: artifact-c2-inner-${github.run_id}
+          name: artifact-c2-inner-${{ github.run_id }}
           path: downloaded/
           if-no-files-found: error
 
