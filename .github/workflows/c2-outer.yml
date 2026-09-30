@@ -9,9 +9,14 @@ permissions:
 jobs:
   outer-job:
     runs-on: ubuntu-latest
+    outputs:
+      outer_run_id: ${{ github.run_id }}
+      outer_run_number: ${{ github.run_number }}
+      inner_run_id: ${{ steps.trigger.outputs.inner_run_id }}
+      inner_run_number: ${{ steps.trigger.outputs.inner_run_number }}
+      inner_run_url: ${{ steps.trigger.outputs.inner_run_url }}
     steps:
       - name: Capture outer run info
-        id: info
         run: |
           echo "outer_run_id=${{ github.run_id }}" >> $GITHUB_OUTPUT
           echo "outer_run_number=${{ github.run_number }}" >> $GITHUB_OUTPUT
@@ -35,7 +40,6 @@ jobs:
               }
             });
             console.log('Inner workflow dispatched.');
-
             for (let i = 0; i < 20; i++) {
               const runs = await github.rest.actions.listWorkflowRuns({
                 owner: 'abhishakenp',
@@ -49,7 +53,6 @@ jobs:
                 core.setOutput('inner_run_id', String(r.id));
                 core.setOutput('inner_run_number', String(r.run_number));
                 core.setOutput('inner_run_url', r.html_url);
-                core.setOutput('inner_status', r.status);
                 console.log('Inner run:', r.id, r.status, r.conclusion);
                 break;
               }
@@ -62,7 +65,6 @@ jobs:
           echo "Polling inner run ID: $INNER_ID"
           for i in $(seq 1 30); do
             echo "Check $i..."
-            # gh returns exit code 4 on 404 - use || true to ignore
             RESULT=$(gh api repos/abhishakenp/prime-agent-runs/actions/runs/$INNER_ID --jq '.conclusion // empty' 2>/dev/null || echo "pending")
             echo "  Result: $RESULT"
             if [ "$RESULT" != "pending" ] && [ "$RESULT" != "" ]; then
@@ -77,6 +79,7 @@ jobs:
         with:
           name: artifact-c2-inner-${{ github.run_id }}
           path: downloaded/
+          run-id: ${{ steps.trigger.outputs.inner_run_id }}
           if-no-files-found: error
 
       - name: Show results
