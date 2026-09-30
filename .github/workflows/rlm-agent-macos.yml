@@ -28,11 +28,11 @@ on:
       runner_label:
         description: 'runs-on label — keeps this file generic per OS family'
         required: false
-        default: 'ubuntu-latest'
+        default: 'macos-14'
 
 jobs:
   agent:
-    runs-on: ${{ github.event.inputs.runner_label || 'ubuntu-latest' }}
+    runs-on: ${{ github.event.inputs.runner_label || 'macos-14' }}
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
       GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -149,8 +149,8 @@ jobs:
           if [ "$GEN" -lt 8 ] && { [ -f "$W/.budget-exceeded" ] || { [ -z "$DONE" ] && [ "$ELAPSED" -gt 180 ]; }; }; then
             RESUME_VAL="${{ github.run_id }}"
             curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rlm-agent.yml/dispatches" \
-              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"task_name\":\"${{ github.event.inputs.task_name || 'rlm-agent' }}\",\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"$RESUME_VAL\",\"generation\":\"$((GEN+1))\",\"runner_label\":\"${{ github.event.inputs.runner_label || 'ubuntu-latest' }}\"}}" \
+              "https://api.github.com/repos/${{ github.repository }}/actions/workflows/rlm-agent-macos.yml/dispatches" \
+              -d "{\"ref\":\"${{ github.ref_name }}\",\"inputs\":{\"task_name\":\"${{ github.event.inputs.task_name || 'rlm-agent' }}\",\"agent_id\":\"${{ github.event.inputs.agent_id }}\",\"gist_url\":\"${{ github.event.inputs.gist_url }}\",\"work_dir\":\"${{ github.event.inputs.work_dir }}\",\"resume_from\":\"$RESUME_VAL\",\"generation\":\"$((GEN+1))\",\"runner_label\":\"${{ github.event.inputs.runner_label || 'macos-14' }}\"}}" \
               || echo '[rlm] successor dispatch failed'
             echo "[rlm] gen $GEN handing off (budget=$([ -f "$W/.budget-exceeded" ] && echo yes || echo no), resume=$RESUME_VAL) — dispatched gen $((GEN+1))"
           fi
