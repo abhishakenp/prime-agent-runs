@@ -80,51 +80,60 @@ jobs:
           sleep 30
           screencapture -x "$OUT/shot-0-launch.png"; echo "[proof] launch shot rc=$?"
 
-          # AX discovery: what does GPUI expose? This decides AX-drive vs cliclick-drive.
-          osascript <<'AXEOF' > "$OUT/ax-dump.txt" 2>&1
-            tell application "System Events"
-              tell process "mergekit-gpui"
-                set out to ""
+          # AX discovery: what does GPUI expose? Decides AX-drive vs cliclick-drive.
+          # Single-line osascript with ¬ continuations avoided — write script file first.
+          cat > "$OUT/axdump.scpt" <<'SCPT'
+          set out to ""
+          tell application "System Events"
+            tell process "mergekit-gpui"
+              try
+                set out to "windows=" & (count of windows) & "\n"
+              on error e
+                set out to "no windows: " & e
+              end try
+              repeat with w in windows
                 try
-                  set out to (count of windows) as string
-                on error e
-                  set out to "no windows: " & e
+                  set out to out & "WINDOW " & (title of w) & " size " & ((size of w) as string) & "\n"
                 end try
-                repeat with w in windows
-                  set out to out & "
-      WINDOW: " & (title of w) & " size " & ((size of w) as string) & " pos " & ((position of w) as string)
-                  try
-                    set ui to entire contents of w
-                    repeat with el in ui
-                      try
-                        set out to out & "
-        " & (role of el) & " | " & ((description of el) as string) & " | " & ((value of el) as string) & " | pos " & ((position of el) as string) & " sz " & ((size of el) as string)
-                      end try
-                    end repeat
-                  on error e2
-                    set out to out & "
-      contents err: " & e2
-                  end try
-                end repeat
-                return out
-              end tell
+                try
+                  set ui to entire contents of w
+                  set n to count of ui
+                  set out to out & "elements=" & n & "\n"
+                  repeat with i from 1 to (my min2(n, 400))
+                    set el to item i of ui
+                    try
+                      set out to out & "  " & (role of el) & " | " & ((description of el) as string) & " | " & ((value of el) as string) & " | " & ((position of el) as string) & " " & ((size of el) as string) & "\n"
+                    end try
+                  end repeat
+                on error e2
+                  set out to out & "contents err: " & e2 & "\n"
+                end try
+              end repeat
             end tell
-          AXEOF
+          end tell
+          return out
+          on min2(a, b)
+            if a < b then return a
+            return b
+          end min2
+          SCPT
+          osascript "$OUT/axdump.scpt" > "$OUT/ax-dump.txt" 2>&1
           head -60 "$OUT/ax-dump.txt"
 
-          # Drive attempt 1 — AX: set/click a text field if exposed.
-          osascript <<'AXEOF' 2>&1 | head -20
-            tell application "System Events" to tell process "mergekit-gpui"
-              try
-                set tf to first text field of window 1
-                perform action "AXPress" of tf
-                set focused of tf to true
-                return "AX field ok"
-              on error e
-                return "AX drive failed: " & e
-              end try
-            end tell
-          AXEOF
+          # Drive attempt 1 — AX: press+focus first text field if GPUI exposes one.
+          cat > "$OUT/axdrive.scpt" <<'SCPT'
+          tell application "System Events" to tell process "mergekit-gpui"
+            try
+              set tf to first text field of window 1
+              set focused of tf to true
+              perform action "AXPress" of tf
+              return "AX field focused"
+            on error e
+              return "AX drive failed: " & e
+            end try
+          end tell
+          SCPT
+          osascript "$OUT/axdrive.scpt" 2>&1 | head -5
 
           echo "[proof] starting 90s screen recording"
           screencapture -v "$OUT/proof.mov" -V 90 &
