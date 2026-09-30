@@ -183,7 +183,7 @@ jobs:
           W=${{ steps.workdir.outputs.work_path }}
           GEN="${{ github.event.inputs.generation || '0' }}"
           DONE=""; grep -q '"status":"done"' "$W/status.json" 2>/dev/null && [ -s "$W/output.log" ] && DONE=1
-          START=$(cat "$W/.agent-started" 2>/dev/null || echo 0); ELAPSED=$(( $(date +%s) - START ))
+          START=$(cat "$W/.agent-started" 2>/dev/null || date +%s); ELAPSED=$(( $(date +%s) - START ))
           if [ "$GEN" -lt 8 ] && { [ -f "$W/.budget-exceeded" ] || { [ -z "$DONE" ] && [ "$ELAPSED" -gt 180 ]; }; }; then
             RESUME_VAL="${{ github.run_id }}"
             curl -sf -X POST -H "Authorization: token $GH_TOKEN" -H "Accept: application/vnd.github+json" \
