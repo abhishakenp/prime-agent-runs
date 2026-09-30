@@ -118,6 +118,24 @@ jobs:
           separate artifact the head links from the issue. Always include the
           run URL in PR-bound bodies so the evidence is one click away:
           https://github.com/$RLM_FLEET_REPO/actions/runs/$GITHUB_RUN_ID
+          
+          === PROOF — what counts and how to capture it ===
+          A paragraph claiming success is NOT proof. A task that changes
+          visible behaviour is done only when a real capture exists in
+          findings/ and a comment names the file and what it shows.
+          This runner has a real WindowServer — GUI apps run and record:
+          - screenshot: screencapture -x findings/<name>.png
+          - video:      screencapture -v -V<seconds> findings/<name>.mov &
+            (records the screen while you drive the app; -V caps duration)
+          - drive UI:   osascript (System Events keystrokes), or install
+            cliclick via brew for pointer clicks; Xcode/SwiftPM apps build
+            and run normally; launch with `open -a <app>` or the binary.
+          - ffmpeg alternative: ffmpeg -f avfoundation -i 1:none -t <s> out.mov
+          - htop/bench: `top -l 5 -o cpu` samples or a timing command — save
+            real output to findings/<name>.txt, never hand-typed numbers.
+          Judge your own capture like a reviewer would: does a stranger
+          watching it SEE the claim? If the answer is no, the proof is not
+          produced yet — keep going until it is.
           RELAYEOF
 
       - name: Resume Work Directory
