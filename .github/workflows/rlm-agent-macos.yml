@@ -123,19 +123,47 @@ jobs:
           A paragraph claiming success is NOT proof. A task that changes
           visible behaviour is done only when a real capture exists in
           findings/ and a comment names the file and what it shows.
-          This runner has a real WindowServer — GUI apps run and record:
+          
+          PROBE THE TEST SURFACE FIRST — pick the most deterministic tier
+          that exists, do not reach for screen-clicking by default:
+          - tier 1, in-repo headless tests: look for existing UI test infra
+            (`#[gpui::test]`/TestAppContext for GPUI apps, XCTest for
+            Apple apps, Playwright/vitest for web). If present, write a
+            test that drives the real code path and asserts state — e.g.
+            GPUI: mount the view, cx.simulate_keystrokes("abc"),
+            dispatch_keystroke backspace, assert editor text == "ab".
+            That output IS the proof; no display, no vision needed.
+          - tier 2, live app + keyboard driving: works even when the app
+            exposes no accessibility tree (custom-rendered surfaces like
+            GPUI report zero AX windows). osascript System Events
+            `keystroke`/`key code` to the focused process needs no element
+            refs. VERIFY the effect, don't assume it: screenshot the
+            region before/after and diff them —
+            ffmpeg -i before.png -i after.png -filter_complex ssim -f null -
+            prints a number; a drop from 1.0000 proves pixels changed.
+            Record the whole run as video too.
+          - tier 3, accessibility semantics: only if the app exposes an AX
+            tree — check first:
+            osascript -e 'tell app "System Events" to tell process "<name>"
+            to count every window'  → 0 means go to tier 2.
+            Where elements exist, act on them by role/title (AXPress,
+            set value of text field), never by pixel.
+          - tier 4, coordinates LAST: cliclick only when nothing above
+            exists, and ALWAYS pair a click with an effect check (frame
+            diff or state read). A click you didn't verify is nothing.
+          
+          CAPTURE:
           - screenshot: screencapture -x findings/<name>.png
           - video:      screencapture -v -V<seconds> findings/<name>.mov &
             (records the screen while you drive the app; -V caps duration)
-          - drive UI:   osascript (System Events keystrokes), or install
-            cliclick via brew for pointer clicks; Xcode/SwiftPM apps build
-            and run normally; launch with `open -a <app>` or the binary.
           - ffmpeg alternative: ffmpeg -f avfoundation -i 1:none -t <s> out.mov
           - htop/bench: `top -l 5 -o cpu` samples or a timing command — save
             real output to findings/<name>.txt, never hand-typed numbers.
-          Judge your own capture like a reviewer would: does a stranger
-          watching it SEE the claim? If the answer is no, the proof is not
-          produced yet — keep going until it is.
+          Do not rely on viewing images to verify — you may not have
+          vision; prefer state assertions and diffs that produce text.
+          Judge your own evidence like a reviewer would: does the artifact
+          SHOW the claim (assertion output, diff numbers, visible frames)?
+          If not, the proof is not produced yet — keep going until it is.
           RELAYEOF
 
       - name: Resume Work Directory
