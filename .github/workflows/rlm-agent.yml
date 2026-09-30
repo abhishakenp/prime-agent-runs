@@ -35,6 +35,44 @@ jobs:
     runs-on: ${{ github.event.inputs.runner_label || 'ubuntu-latest' }}
     env:
       AGENT_ID: ${{ github.event.inputs.agent_id }}
+      GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      ANTHROPIC_OAUTH_TOKEN: ${{ secrets.ANTHROPIC_OAUTH_TOKEN }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+      AWS_BEARER_TOKEN_BEDROCK: ${{ secrets.AWS_BEARER_TOKEN_BEDROCK }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      AWS_SESSION_TOKEN: ${{ secrets.AWS_SESSION_TOKEN }}
+      AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+      CLOUDFLARE_API_KEY: ${{ secrets.CLOUDFLARE_API_KEY }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DASHSCOPE_API_KEY: ${{ secrets.DASHSCOPE_API_KEY }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      EXPLABS_API_KEY: ${{ secrets.EXPLABS_API_KEY }}
+      FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+      FIREWORKS_API_KEY: ${{ secrets.FIREWORKS_API_KEY }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GOOGLE_CLOUD_API_KEY: ${{ secrets.GOOGLE_CLOUD_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+      LM_STUDIO_API_KEY: ${{ secrets.LM_STUDIO_API_KEY }}
+      MIMO_API_KEY: ${{ secrets.MIMO_API_KEY }}
+      MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      MOONSHOT_API_KEY: ${{ secrets.MOONSHOT_API_KEY }}
+      OLLAMA_API_KEY: ${{ secrets.OLLAMA_API_KEY }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      PRIME_API_KEY: ${{ secrets.PRIME_API_KEY }}
+      SERPER_API_KEY: ${{ secrets.SERPER_API_KEY }}
+      TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+      XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+      XIAOMI_API_KEY: ${{ secrets.XIAOMI_API_KEY }}
+      ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
     timeout-minutes: 65
     steps:
       - name: Setup Node
@@ -56,7 +94,7 @@ jobs:
           BUNDLE_DIR=$(ls /tmp/agent-bundle)
           echo "BUNDLE_DIR=/tmp/agent-bundle/$BUNDLE_DIR" >> $GITHUB_ENV
           mkdir -p $BUNDLE_DIR/agent
-          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const s=JSON.parse(process.env.ALL_SECRETS_JSON||"{}");const keep=/_(API_KEY|API_TOKEN|OAUTH_TOKEN|ACCESS_TOKEN|TOKEN)$/;const env={};for(const k of Object.keys(s)){if(k==="GH_TOKEN"||k==="GITHUB_TOKEN"||(keep.test(k)&&!k.startsWith("RLM_MINT_")))env[k]=s[k];}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
+          BUNDLE_DIR=$BUNDLE_DIR node -e 'const fs=require("fs");const keys=["GH_TOKEN","GITHUB_TOKEN","AI_GATEWAY_API_KEY","ANTHROPIC_API_KEY","ANTHROPIC_OAUTH_TOKEN","AWS_ACCESS_KEY_ID","AWS_BEARER_TOKEN_BEDROCK","AWS_SECRET_ACCESS_KEY","AWS_SESSION_TOKEN","AZURE_OPENAI_API_KEY","CEREBRAS_API_KEY","CLOUDFLARE_API_KEY","CLOUDFLARE_API_TOKEN","DASHSCOPE_API_KEY","DEEPSEEK_API_KEY","EXPLABS_API_KEY","FIRECRAWL_API_KEY","FIREWORKS_API_KEY","GEMINI_API_KEY","GOOGLE_CLOUD_API_KEY","GROQ_API_KEY","KAGGLE_API_TOKEN","KIMI_API_KEY","LM_STUDIO_API_KEY","MIMO_API_KEY","MINIMAX_API_KEY","MISTRAL_API_KEY","MOONSHOT_API_KEY","OLLAMA_API_KEY","OPENAI_API_KEY","OPENCODE_API_KEY","OPENROUTER_API_KEY","PRIME_API_KEY","SERPER_API_KEY","TYPESAFE_API_KEY","XAI_API_KEY","XIAOMI_API_KEY","ZAI_API_KEY"];const env={};for(const k of keys){env[k]=process.env[k]||"";}fs.writeFileSync(process.env.BUNDLE_DIR+"/agent/env.json",JSON.stringify(env,null,2));'
           cat >> "$BUNDLE_DIR/agent/prompt.txt" <<'RELAYEOF'
           === FLEET RELAY CONTRACT ===
           This run is hosted on repo $RLM_FLEET_REPO. If the repository your PR must
@@ -69,8 +107,6 @@ jobs:
           The fleet head fetches the branch and files the PR itself. Never fail the
           task just because the push to the target was denied — relay it.
           RELAYEOF
-        env:
-          ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
 
       - name: Resume Work Directory
         if: github.event.inputs.resume_from != ''
