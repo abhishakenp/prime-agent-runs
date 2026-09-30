@@ -112,8 +112,12 @@ jobs:
           findings, verdicts, evidence notes, status — append one JSON string per
           line to findings/ISSUE_COMMENTS.jsonl inside your session work dir
           (mkdir -p findings first). Each line becomes a real issue comment.
+          To comment on a PR or issue somewhere the head can reach, make the
+          line {"body":"<markdown>","to":"<owner/repo>#<number>" or the full URL}.
           Put screenshots/videos/logs in findings/ too — they upload as a small
-          separate artifact the head links from the issue.
+          separate artifact the head links from the issue. Always include the
+          run URL in PR-bound bodies so the evidence is one click away:
+          https://github.com/$RLM_FLEET_REPO/actions/runs/$GITHUB_RUN_ID
           RELAYEOF
 
       - name: Resume Work Directory
