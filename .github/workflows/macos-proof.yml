@@ -34,6 +34,7 @@ jobs:
         with:
           repository: LivioGama/mergekit-gpui
           ref: ${{ inputs.ref }}
+          token: ${{ secrets.GH_TOKEN }}
 
       - name: Rust toolchain + Metal toolchain
         run: |
