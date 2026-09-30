@@ -2,6 +2,11 @@ name: C2-Outer Recursion Probe
 on:
   workflow_dispatch:
 
+permissions:
+  actions: write
+  contents: read
+  id-token: write
+
 jobs:
   outer-job:
     runs-on: ubuntu-latest
