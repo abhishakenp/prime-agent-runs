@@ -106,6 +106,14 @@ jobs:
           {"branch":"<branch>","target_repo":"<owner/repo>","base":"<base>","title":"<pr title>","body":"<pr body>","task":"<task name>"}.
           The fleet head fetches the branch and files the PR itself. Never fail the
           task just because the push to the target was denied — relay it.
+          
+          === FINDINGS CHANNEL ===
+          Your task is tracked as an issue on the head repo. To post to it —
+          findings, verdicts, evidence notes, status — append one JSON string per
+          line to findings/ISSUE_COMMENTS.jsonl inside your session work dir
+          (mkdir -p findings first). Each line becomes a real issue comment.
+          Put screenshots/videos/logs in findings/ too — they upload as a small
+          separate artifact the head links from the issue.
           RELAYEOF
 
       - name: Resume Work Directory
@@ -175,6 +183,15 @@ jobs:
           name: agent-logs-${{ github.run_id }}
           path: |
             /tmp/agent-bundle/
+          if-no-files-found: ignore
+
+      - name: Upload Findings
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-findings-${{ github.run_id }}
+          path: |
+            ${{ steps.workdir.outputs.work_path }}/findings/
           if-no-files-found: ignore
 
       - name: Dispatch Successor Generation
