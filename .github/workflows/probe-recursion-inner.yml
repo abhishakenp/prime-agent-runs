@@ -1,0 +1,27 @@
+name: C2 Inner Probe
+on:
+  workflow_dispatch:
+    inputs:
+      outer_run_id:
+        description: 'Outer run ID for tracking'
+        required: false
+        default: ''
+
+jobs:
+  nested:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create nested result
+        run: |
+          echo "nested" > result.txt
+          echo "Inner run ID: ${{ github.run_id }}" >> result.txt
+          echo "Inner run number: ${{ github.run_number }}" >> result.txt
+          echo "Created result.txt with content 'nested'"
+          cat result.txt
+
+      - name: Upload nested artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nested-result-${{ github.run_id }}
+          path: result.txt
+          retention-days: 5
