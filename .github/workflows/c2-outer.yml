@@ -5,7 +5,6 @@ on:
 permissions:
   actions: write
   contents: read
-  id-token: write
 
 jobs:
   outer-job:
@@ -50,6 +49,7 @@ jobs:
                 core.setOutput('inner_run_id', String(r.id));
                 core.setOutput('inner_run_number', String(r.run_number));
                 core.setOutput('inner_run_url', r.html_url);
+                core.setOutput('inner_status', r.status);
                 console.log('Inner run:', r.id, r.status, r.conclusion);
                 break;
               }
@@ -60,11 +60,13 @@ jobs:
         run: |
           INNER_ID=${{ steps.trigger.outputs.inner_run_id }}
           echo "Polling inner run ID: $INNER_ID"
-          for i in $(seq 1 20); do
-            RESULT=$(gh api repos/abhishakenp/prime-agent-runs/actions/runs/$INNER_ID --jq '.conclusion // "in_progress"' 2>/dev/null)
-            echo "Check $i: $RESULT"
-            if [ "$RESULT" != "in_progress" ]; then
-              echo "Done: $RESULT"
+          for i in $(seq 1 30); do
+            echo "Check $i..."
+            # gh returns exit code 4 on 404 - use || true to ignore
+            RESULT=$(gh api repos/abhishakenp/prime-agent-runs/actions/runs/$INNER_ID --jq '.conclusion // empty' 2>/dev/null || echo "pending")
+            echo "  Result: $RESULT"
+            if [ "$RESULT" != "pending" ] && [ "$RESULT" != "" ]; then
+              echo "Inner run done: $RESULT"
               break
             fi
             sleep 5
