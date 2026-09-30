@@ -70,7 +70,7 @@ jobs:
           task just because the push to the target was denied — relay it.
           RELAYEOF
         env:
-          ALL_SECRETS_JSON: ${{ toJSON(secrets) }}
+          ALL_SECRETS_JSON: '{}'
 
       - name: Resume Work Directory
         if: github.event.inputs.resume_from != ''
